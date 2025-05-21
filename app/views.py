@@ -5,6 +5,9 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.permissions import AllowAny, IsAuthenticated, SAFE_METHODS, BasePermission
+from django.db.models import Q
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 from .serializers import QatagonlarSerializers, QatagonlarDetailSerializers
 from .models import QatagonlarClassModel
@@ -23,6 +26,31 @@ class QatagonlarViewSet(ModelViewSet):
     queryset = QatagonlarClassModel.objects.all()
     lookup_field = 'slug'
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        if 'name' in self.request.GET:
+            queryset = QatagonlarClassModel.objects.filter(
+                Q(full_name__icontains=self.request.GET['name'])
+                |
+                Q(birth_year__icontains=self.request.GET['name'])
+            )
+        else:
+            queryset = QatagonlarClassModel.objects.all()
+
+        return queryset
+
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter(
+                'name',
+                openapi.IN_QUERY,
+                description="Full name bo'yicha qidirish",
+                type=openapi.TYPE_STRING
+            )
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     def get_serializer_class(self):
         if self.action == 'list':
